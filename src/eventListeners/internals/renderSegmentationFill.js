@@ -6,7 +6,7 @@ import {
 } from '../../drawing/index.js';
 import external from '../../externalModules';
 
-const { state, configuration } = getModule('segmentation');
+const segmentationModule = getModule('segmentation');
 
 export default function renderSegmentationFill(
   evt,
@@ -31,6 +31,7 @@ export default function renderSegmentationFill(
  * @returns {HTMLCanvasElement}
  */
 export function getLabelmapCanvas(evt, labelmap3D, labelmap2D) {
+  const { state } = segmentationModule;
   const eventData = evt.detail;
   const { image } = eventData;
   const cols = image.width;
@@ -77,6 +78,7 @@ export function getLabelmapCanvas(evt, labelmap3D, labelmap2D) {
  * @returns {null}
  */
 export function renderFill(evt, labelmapCanvas, isActiveLabelMap) {
+  const { configuration } = segmentationModule;
   const eventData = evt.detail;
   const context = getNewContext(eventData.canvasContext.canvas);
 
@@ -120,10 +122,7 @@ export function renderFill(evt, labelmapCanvas, isActiveLabelMap) {
 
   transformCanvasContext(context, canvas, viewport);
 
-  const canvasViewportTranslation = {
-    x: viewport.translation.x * viewport.scale,
-    y: viewport.translation.y * viewport.scale,
-  };
+  const canvasViewportTranslation = getCanvasViewportTranslation(eventData);
 
   context.drawImage(
     labelmapCanvas,
@@ -139,4 +138,29 @@ export function renderFill(evt, labelmapCanvas, isActiveLabelMap) {
   context.imageSmoothingEnabled = previousImageSmoothingEnabled;
 
   resetCanvasContextTransform(context);
+}
+
+/**
+ * GetCanvasViewportTranslation - Returns translation coordinations for
+ * canvas viewport with calculation of image row/column pixel spacing.
+ *
+ * @param  {Object} eventData The data associated with the event.
+ * @returns  {Object} The coordinates of the translation.
+ */
+function getCanvasViewportTranslation(eventData) {
+  const { viewport, image } = eventData;
+
+  let widthScale = viewport.scale;
+  let heightScale = viewport.scale;
+
+  if (image.rowPixelSpacing < image.columnPixelSpacing) {
+    widthScale *= image.columnPixelSpacing / image.rowPixelSpacing;
+  } else if (image.columnPixelSpacing < image.rowPixelSpacing) {
+    heightScale *= image.rowPixelSpacing / image.columnPixelSpacing;
+  }
+
+  return {
+    x: viewport.translation.x * widthScale,
+    y: viewport.translation.y * heightScale,
+  };
 }
