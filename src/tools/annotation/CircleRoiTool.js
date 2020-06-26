@@ -5,6 +5,7 @@ import BaseAnnotationTool from '../base/BaseAnnotationTool.js';
 import { getToolState } from './../../stateManagement/toolState.js';
 import toolStyle from './../../stateManagement/toolStyle.js';
 import toolColors from './../../stateManagement/toolColors.js';
+import { getModule } from '../../store/index';
 
 // Drawing
 import {
@@ -43,6 +44,9 @@ export default class CircleRoiTool extends BaseAnnotationTool {
       name: 'CircleRoi',
       supportedInteractionTypes: ['Mouse', 'Touch'],
       svgCursor: circleRoiCursor,
+      configuration: {
+        renderDashed: false,
+      },
     };
 
     super(props, defaultProps);
@@ -168,9 +172,11 @@ export default class CircleRoiTool extends BaseAnnotationTool {
       handleRadius,
       drawHandlesIfActive,
       drawHandlesOnHover,
+      renderDashed,
     } = this.configuration;
     const newContext = getNewContext(canvasContext.canvas);
     const { rowPixelSpacing, colPixelSpacing } = getPixelSpacing(image);
+    const lineDash = getModule('globalConfiguration').configuration.lineDash;
 
     // Meta
     const seriesModule =
@@ -216,15 +222,19 @@ export default class CircleRoiTool extends BaseAnnotationTool {
         // Calculating the radius where startCanvas is the center of the circle to be drawn
         const radius = getDistance(startCanvas, endCanvas);
 
+        const circleOptions = { color };
+
+        if (renderDashed) {
+          circleOptions.lineDash = lineDash;
+        }
+
         // Draw Circle
         drawCircle(
           context,
           element,
           data.handles.start,
           radius,
-          {
-            color,
-          },
+          circleOptions,
           'pixel'
         );
 
