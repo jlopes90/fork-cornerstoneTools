@@ -1,5 +1,7 @@
 let defaultColor = 'white',
   activeColor = 'greenyellow',
+  defaultColorSelected = '#33ccff',
+  activeColorSelected = '#009bff',
   fillColor = 'transparent';
 
 function setFillColor(color) {
@@ -26,8 +28,30 @@ function getActiveColor() {
   return activeColor;
 }
 
+function setToolColorSelected(color) {
+  defaultColorSelected = color;
+}
+
+function getToolColorSelected() {
+  return defaultColorSelected;
+}
+
+function setActiveColorSelected(color) {
+  activeColorSelected = color;
+}
+
+function getActiveColorSelected() {
+  return activeColorSelected;
+}
+
 function getColorIfActive(data) {
-  if (data.active === true) {
+  if (data.activeSelected === true) {
+    if (data.active === true) {
+      return data.colorSelected || defaultColorSelected;
+    }
+
+    return data.activeColorSelected || activeColorSelected;
+  } else if (data.active === true) {
     return data.activeColor || activeColor;
   }
 
@@ -41,6 +65,10 @@ const toolColors = {
   getToolColor,
   setActiveColor,
   getActiveColor,
+  setToolColorSelected,
+  getToolColorSelected,
+  setActiveColorSelected,
+  getActiveColorSelected,
   getColorIfActive,
 };
 
