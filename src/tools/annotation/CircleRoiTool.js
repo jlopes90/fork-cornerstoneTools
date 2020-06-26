@@ -47,12 +47,10 @@ export default class CircleRoiTool extends BaseAnnotationTool {
     const defaultProps = {
       name: 'CircleRoi',
       supportedInteractionTypes: ['Mouse', 'Touch'],
+      svgCursor: circleRoiCursor,
       configuration: {
         // hideTextBox: false,
         // textBoxOnHover: false,
-      },
-      svgCursor: circleRoiCursor,
-      configuration: {
         renderDashed: false,
       },
     };
