@@ -238,6 +238,7 @@ export default class RectangleRoiTool extends BaseAnnotationTool {
         );
 
         if (this.configuration.drawHandles) {
+          // Draw the handles
           drawHandles(context, eventData, data.handles, handleOptions);
         }
 
