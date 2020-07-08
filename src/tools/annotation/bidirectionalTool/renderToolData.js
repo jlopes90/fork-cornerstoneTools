@@ -26,6 +26,7 @@ export default function(evt) {
     handleRadius,
     drawHandlesIfActive,
     drawHandlesOnHover,
+    hideHandlesIfMoving,
     renderDashed,
   } = this.configuration;
 
@@ -112,6 +113,7 @@ export default function(evt) {
         handleRadius,
         drawHandlesIfActive,
         drawHandlesOnHover,
+        hideHandlesIfMoving,
       };
 
       // Draw the handles

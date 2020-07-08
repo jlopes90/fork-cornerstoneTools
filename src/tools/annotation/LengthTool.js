@@ -42,6 +42,8 @@ export default class LengthTool extends BaseAnnotationTool {
         // hideTextBox: false,
         // textBoxOnHover: false,
         drawHandles: true,
+        drawHandlesOnHover: false,
+        hideHandlesIfMoving: false,
         renderDashed: false,
       },
       svgCursor: lengthCursor,
@@ -155,6 +157,7 @@ export default class LengthTool extends BaseAnnotationTool {
       handleRadius,
       drawHandlesIfActive,
       drawHandlesOnHover,
+      hideHandlesIfMoving,
       renderDashed,
     } = this.configuration;
     const toolData = getToolState(evt.currentTarget, this.name);
@@ -186,6 +189,7 @@ export default class LengthTool extends BaseAnnotationTool {
           handleRadius,
           drawHandlesIfActive,
           drawHandlesOnHover,
+          hideHandlesIfMoving,
         };
 
         // Configurable shadow

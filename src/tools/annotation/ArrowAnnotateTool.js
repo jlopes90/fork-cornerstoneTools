@@ -54,8 +54,9 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
         // textBoxOnHover: false,
         getTextCallback,
         changeTextCallback,
-        drawHandles: false,
-        drawHandlesOnHover: true,
+        drawHandles: true,
+        drawHandlesOnHover: false,
+        hideHandlesIfMoving: false,
         arrowFirst: true,
         renderDashed: false,
       },
@@ -138,6 +139,7 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
       handleRadius,
       drawHandlesIfActive,
       drawHandlesOnHover,
+      hideHandlesIfMoving,
       renderDashed,
     } = this.configuration;
 
@@ -209,6 +211,7 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
           handleRadius,
           drawHandlesIfActive,
           drawHandlesOnHover,
+          hideHandlesIfMoving,
         };
 
         if (this.configuration.drawHandles) {
@@ -342,20 +345,24 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
               });
             }, evt.detail);
           }
+
+          const modifiedEventData = {
+            toolName: this.name,
+            toolType: this.name, // Deprecation notice: toolType will be replaced by toolName
+            element,
+            measurementData,
+          };
+
+          triggerEvent(
+            element,
+            EVENTS.MEASUREMENT_COMPLETED,
+            modifiedEventData
+          );
         } else {
           removeToolState(element, this.name, measurementData);
         }
 
         external.cornerstone.updateImage(element);
-
-        const modifiedEventData = {
-          toolName: this.name,
-          toolType: this.name, // Deprecation notice: toolType will be replaced by toolName
-          element,
-          measurementData,
-        };
-
-        triggerEvent(element, EVENTS.MEASUREMENT_COMPLETED, modifiedEventData);
       }
     );
   }

@@ -52,6 +52,7 @@ export default class CircleRoiTool extends BaseAnnotationTool {
         // hideTextBox: false,
         // textBoxOnHover: false,
         renderDashed: false,
+        hideHandlesIfMoving: false,
       },
     };
 
@@ -185,6 +186,7 @@ export default class CircleRoiTool extends BaseAnnotationTool {
       handleRadius,
       drawHandlesIfActive,
       drawHandlesOnHover,
+      hideHandlesIfMoving,
       renderDashed,
     } = this.configuration;
     const newContext = getNewContext(canvasContext.canvas);
@@ -215,6 +217,7 @@ export default class CircleRoiTool extends BaseAnnotationTool {
           handleRadius,
           drawHandlesIfActive,
           drawHandlesOnHover,
+          hideHandlesIfMoving,
         };
 
         // Handles

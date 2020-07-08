@@ -6,7 +6,6 @@ import textColors from './../../stateManagement/textColors.js';
 import { getToolState } from './../../stateManagement/toolState.js';
 import toolStyle from './../../stateManagement/toolStyle.js';
 import toolColors from './../../stateManagement/toolColors.js';
-import toolHandlesColors from '../../stateManagement/toolHandlesColors.js';
 
 // Drawing
 import {
@@ -47,6 +46,8 @@ export default class RectangleRoiTool extends BaseAnnotationTool {
       supportedInteractionTypes: ['Mouse', 'Touch'],
       configuration: {
         drawHandles: true,
+        drawHandlesOnHover: false,
+        hideHandlesIfMoving: false,
         renderDashed: false,
         // showMinMax: false,
         // showHounsfieldUnits: true,
@@ -185,6 +186,7 @@ export default class RectangleRoiTool extends BaseAnnotationTool {
       handleRadius,
       drawHandlesIfActive,
       drawHandlesOnHover,
+      hideHandlesIfMoving,
       renderDashed,
     } = this.configuration;
     const context = getNewContext(eventData.canvasContext.canvas);
@@ -215,6 +217,7 @@ export default class RectangleRoiTool extends BaseAnnotationTool {
           handleRadius,
           drawHandlesIfActive,
           drawHandlesOnHover,
+          hideHandlesIfMoving,
         };
 
         // Configurable shadow
