@@ -59,6 +59,7 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
         hideHandlesIfMoving: false,
         arrowFirst: true,
         renderDashed: false,
+        allowEmptyLabel: false,
       },
       svgCursor: arrowAnnotateCursor,
     };
@@ -313,6 +314,8 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
     const element = evt.detail.element;
     const measurementData = this.createNewMeasurement(evt.detail);
 
+    const { allowEmptyLabel } = this.configuration;
+
     // Associate this data with this imageId so we can render it and manipulate it
     addToolState(element, this.name, measurementData);
     external.cornerstone.updateImage(element);
@@ -328,36 +331,28 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
         if (success) {
           if (measurementData.text === undefined) {
             this.configuration.getTextCallback(text => {
-              if (text) {
+              if (text || allowEmptyLabel) {
                 measurementData.text = text;
+                measurementData.active = false;
+
+                const modifiedEventData = {
+                  toolName: this.name,
+                  toolType: this.name, // Deprecation notice: toolType will be replaced by toolName
+                  element,
+                  measurementData,
+                };
+
+                external.cornerstone.updateImage(element);
+                triggerEvent(
+                  element,
+                  EVENTS.MEASUREMENT_COMPLETED,
+                  modifiedEventData
+                );
               } else {
                 removeToolState(element, this.name, measurementData);
               }
-
-              measurementData.active = false;
-              external.cornerstone.updateImage(element);
-
-              triggerEvent(element, EVENTS.MEASUREMENT_MODIFIED, {
-                toolName: this.name,
-                toolType: this.name, // Deprecation notice: toolType will be replaced by toolName
-                element,
-                measurementData,
-              });
             }, evt.detail);
           }
-
-          const modifiedEventData = {
-            toolName: this.name,
-            toolType: this.name, // Deprecation notice: toolType will be replaced by toolName
-            element,
-            measurementData,
-          };
-
-          triggerEvent(
-            element,
-            EVENTS.MEASUREMENT_COMPLETED,
-            modifiedEventData
-          );
         } else {
           removeToolState(element, this.name, measurementData);
         }
