@@ -45,6 +45,7 @@ export default class LengthTool extends BaseAnnotationTool {
         drawHandlesOnHover: false,
         hideHandlesIfMoving: false,
         renderDashed: false,
+        digits: 2,
       },
       svgCursor: lengthCursor,
     };
@@ -159,6 +160,7 @@ export default class LengthTool extends BaseAnnotationTool {
       drawHandlesOnHover,
       hideHandlesIfMoving,
       renderDashed,
+      digits,
     } = this.configuration;
     const toolData = getToolState(evt.currentTarget, this.name);
 
@@ -297,7 +299,7 @@ export default class LengthTool extends BaseAnnotationTool {
 
       annotation.unit = suffix;
 
-      return `${measuredValue.toFixed(2)} ${suffix}`;
+      return `${measuredValue.toFixed(digits)} ${suffix}`;
     }
 
     function textBoxAnchorPoints(handles) {

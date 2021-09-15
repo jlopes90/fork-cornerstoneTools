@@ -204,8 +204,6 @@ import { default as stackImageIndexSynchronizer } from './synchronization/stackI
 import { default as panZoomSynchronizer } from './synchronization/panZoomSynchronizer.js';
 
 // ~~~~~~ REQUEST POOL MANAGER  ~~~~~ //
-import { default as requestPoolManager } from './requestPool/requestPoolManager.js';
-
 import { default as external } from './externalModules.js';
 import { default as EVENTS } from './events.js';
 import { default as version } from './version.js';
@@ -315,7 +313,6 @@ const cornerstoneTools = {
   stackImagePositionOffsetSynchronizer,
   stackImageIndexSynchronizer,
   panZoomSynchronizer,
-  requestPoolManager,
   external,
   EVENTS,
   version,
@@ -423,7 +420,6 @@ export {
   stackImagePositionOffsetSynchronizer,
   stackImageIndexSynchronizer,
   panZoomSynchronizer,
-  requestPoolManager,
   importInternal,
   external,
   EVENTS,
