@@ -9,6 +9,8 @@ const logger = getLogger('stackTools:stackPrefetch');
 
 const toolName = 'stackPrefetch';
 const requestType = 'prefetch';
+const priority = 0;
+const addToBeginning = true;
 
 let configuration = {
   maxImagesToPrefetch: Infinity,
@@ -38,32 +40,20 @@ function range(lowEnd, highEnd) {
   return arr;
 }
 
-const max = function(arr) {
-  return Math.max.apply(null, arr);
-};
-
-const min = function(arr) {
-  return Math.min.apply(null, arr);
-};
-
 function nearestIndex(arr, x) {
   // Return index of nearest values in array
   // http://stackoverflow.com/questions/25854212/return-index-of-nearest-values-in-an-array
-  const l = [];
-  const h = [];
-
-  arr.forEach(function(v) {
+  let low = 0;
+  let high = arr.length - 1;
+  arr.forEach((v, idx) => {
     if (v < x) {
-      l.push(v);
+      low = Math.max(idx, low);
     } else if (v > x) {
-      h.push(v);
+      high = Math.min(idx, high);
     }
   });
 
-  return {
-    low: arr.indexOf(max(l)),
-    high: arr.indexOf(min(h)),
-  };
+  return { low, high };
 }
 
 function prefetch(element) {
@@ -229,18 +219,32 @@ function prefetch(element) {
       imageIdsToPrefetch.push(imageId);
     }
   }
-  // Load images in reverse order, by adding them at the beginning of the pool.
-  for (const imageToLoad of imageIdsToPrefetch.reverse()) {
-    if (preventCache) {
-      external.cornerstone
-        .loadImage(imageToLoad, { priority: 0, requestType })
-        .then(doneCallback, failCallback);
-    } else {
-      external.cornerstone
-        .loadAndCacheImage(imageToLoad, { priority: 0, requestType })
-        .then(doneCallback, failCallback);
-    }
+
+  let requestFn;
+  const options = {
+    addToBeginning,
+    priority,
+    requestType,
+  };
+
+  if (preventCache) {
+    requestFn = id => external.cornerstone.loadImage(id, options);
+  } else {
+    requestFn = id => external.cornerstone.loadAndCacheImage(id, options);
   }
+
+  imageIdsToPrefetch.reverse().forEach(imageId => {
+    external.cornerstone.imageLoadPoolManager.addRequest(
+      requestFn.bind(null, imageId),
+      requestType,
+      // Additional details
+      {
+        imageId,
+      },
+      priority,
+      addToBeginning
+    );
+  });
 }
 
 function getPromiseRemovedHandler(element) {

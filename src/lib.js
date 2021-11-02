@@ -5,6 +5,7 @@ import BaseBrushTool from './tools/base/BaseBrushTool.js';
 import {
   anyHandlesOutsideImage,
   getHandleNearImagePoint,
+  getHandlePixelPosition,
   handleActivator,
   moveHandle,
   moveAllHandles,
@@ -35,7 +36,7 @@ import {
   fillBox,
   fillTextLines,
 } from './drawing/index.js';
-import { clip, clipToBox } from './util/clip.js';
+import { clip, clipToBox, clipBoxToDisplayedArea } from './util/clip.js';
 import debounce from './util/debounce';
 import deepmerge from './util/deepmerge';
 import getDefault from './util/getDefault';
@@ -99,6 +100,7 @@ export const lib = {
 
   'manipulators/anyHandlesOutsideImage': anyHandlesOutsideImage,
   'manipulators/getHandleNearImagePoint': getHandleNearImagePoint,
+  'manipulators/getHandlePixelPosition': getHandlePixelPosition,
   'manipulators/handleActivator': handleActivator,
   'manipulators/moveAllHandles': moveAllHandles,
   'manipulators/moveHandle': moveHandle,
@@ -154,6 +156,7 @@ export const lib = {
   'util/convertToVector3': convertToVector3,
   'util/clip': clip,
   'util/clipToBox': clipToBox,
+  'util/clipBoxToDisplayedArea': clipBoxToDisplayedArea,
   'util/debounce': debounce,
   'util/deepmerge': deepmerge,
   'util/getDefault': getDefault,
