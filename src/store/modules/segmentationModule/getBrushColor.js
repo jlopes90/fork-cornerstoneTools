@@ -42,7 +42,11 @@ export default function getBrushColor(
 
   let color;
 
-  if (brushStackState) {
+  if (
+    brushStackState &&
+    brushStackState.labelmaps3D &&
+    brushStackState.labelmaps3D.length
+  ) {
     const activeLabelmapIndex = brushStackState.activeLabelmapIndex;
     const labelmap3D = brushStackState.labelmaps3D[activeLabelmapIndex];
 

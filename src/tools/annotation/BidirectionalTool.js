@@ -31,6 +31,8 @@ export default class BidirectionalTool extends BaseAnnotationTool {
       name: 'Bidirectional',
       supportedInteractionTypes: ['Mouse', 'Touch'],
       configuration: {
+        // hideTextBox: false,
+        // textBoxOnHover: false,
         changeMeasurementLocationCallback: emptyLocationCallback,
         getMeasurementLocationCallback: emptyLocationCallback,
         textBox: '',

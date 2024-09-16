@@ -4,9 +4,6 @@ const baseConfig = require('./webpack-base');
 const TerserPlugin = require('terser-webpack-plugin');
 
 const prodConfig = {
-  output: {
-    filename: '[name].min.js',
-  },
   mode: 'production',
   optimization: {
     minimizer: [

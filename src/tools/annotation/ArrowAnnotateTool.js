@@ -3,19 +3,27 @@ import external from './../../externalModules.js';
 import BaseAnnotationTool from '../base/BaseAnnotationTool.js';
 
 import EVENTS from './../../events.js';
-import toolStyle from './../../stateManagement/toolStyle.js';
-import textStyle from './../../stateManagement/textStyle.js';
-import toolColors from './../../stateManagement/toolColors.js';
-import { moveNewHandle } from './../../manipulators/index.js';
-import pointInsideBoundingBox from './../../util/pointInsideBoundingBox.js';
-import lineSegDistance from './../../util/lineSegDistance.js';
 import triggerEvent from './../../util/triggerEvent.js';
 
+// State
+import textStyle from './../../stateManagement/textStyle.js';
+import textColors from './../../stateManagement/textColors.js';
 import {
   addToolState,
   removeToolState,
   getToolState,
 } from './../../stateManagement/toolState.js';
+import toolStyle from './../../stateManagement/toolStyle.js';
+import toolColors from './../../stateManagement/toolColors.js';
+
+// Manipulators
+import { moveNewHandle } from './../../manipulators/index.js';
+
+// Util
+import pointInsideBoundingBox from './../../util/pointInsideBoundingBox.js';
+import lineSegDistance from './../../util/lineSegDistance.js';
+
+// Drawing
 import drawLinkedTextBox from './../../drawing/drawLinkedTextBox.js';
 import { getNewContext, draw, setShadow } from './../../drawing/index.js';
 import drawArrow from './../../drawing/drawArrow.js';
@@ -23,6 +31,11 @@ import drawHandles from './../../drawing/drawHandles.js';
 import { textBoxWidth } from './../../drawing/drawTextBox.js';
 import { arrowAnnotateCursor } from '../cursors/index.js';
 import { getModule } from '../../store/index';
+
+// Logger
+import { getLogger } from '../../util/logger.js';
+
+const logger = getLogger('tools:annotation:ArrowAnnotateTool');
 
 /**
  * @public
@@ -37,6 +50,8 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
       name: 'ArrowAnnotate',
       supportedInteractionTypes: ['Mouse', 'Touch'],
       configuration: {
+        // hideTextBox: false,
+        // textBoxOnHover: false,
         getTextCallback,
         changeTextCallback,
         drawHandles: true,
@@ -53,32 +68,50 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
     this.preventNewMeasurement = false;
   }
 
-  createNewMeasurement(evt) {
+  createNewMeasurement(eventData) {
+    const goodEventData =
+      eventData && eventData.currentPoints && eventData.currentPoints.image;
+
+    if (!goodEventData) {
+      logger.error(
+        `required eventData not supplied to tool ${this.name}'s createNewMeasurement`
+      );
+
+      return;
+    }
+
+    const config = this.configuration || {};
+
     // Create the measurement data for this tool with the end handle activated
     return {
       visible: true,
       active: true,
-      color: undefined,
+      color: config.color,
+      activeColor: config.activeColor,
       handles: {
         start: {
-          x: evt.detail.currentPoints.image.x,
-          y: evt.detail.currentPoints.image.y,
+          x: eventData.detail.currentPoints.image.x,
+          y: eventData.detail.currentPoints.image.y,
           highlight: true,
           active: false,
         },
         end: {
-          x: evt.detail.currentPoints.image.x,
-          y: evt.detail.currentPoints.image.y,
+          x: eventData.detail.currentPoints.image.x,
+          y: eventData.detail.currentPoints.image.y,
           highlight: true,
           active: false,
         },
         textBox: {
           active: false,
+          color: undefined,
+          activeColor: undefined,
           hasMoved: false,
           movesIndependently: false,
           drawnIndependently: true,
           allowedOutsideImage: true,
           hasBoundingBox: true,
+          hide: false,
+          hover: false,
         },
       },
     };
@@ -135,6 +168,7 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
       }
 
       draw(context, context => {
+        // Configurable shadow
         setShadow(context, this.configuration);
 
         const color = toolColors.getColorIfActive(data);
@@ -172,6 +206,7 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
 
         const handleOptions = {
           color,
+          active: data.active,
           handleRadius,
           drawHandlesIfActive: drawHandlesOnHover,
           hideHandlesIfMoving,
@@ -179,6 +214,20 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
 
         if (this.configuration.drawHandles) {
           drawHandles(context, evt.detail, data.handles, handleOptions);
+        }
+
+        // Hide TextBox
+        if (this.configuration.hideTextBox || data.handles.textBox.hide) {
+          return;
+        }
+        // TextBox OnHover
+        data.handles.textBox.hasBoundingBox =
+          !this.configuration.textBoxOnHover && !data.handles.textBox.hover;
+        if (
+          (this.configuration.textBoxOnHover || data.handles.textBox.hover) &&
+          !data.active
+        ) {
+          return;
         }
 
         const text = textBoxText(data);
@@ -225,6 +274,9 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
             data.handles.textBox.y = coords.y;
           }
 
+          // Text Colors
+          const textColor = textColors.getColorIfActive(data);
+
           drawLinkedTextBox(
             context,
             element,
@@ -232,7 +284,7 @@ export default class ArrowAnnotateTool extends BaseAnnotationTool {
             text,
             data.handles,
             textBoxAnchorPoints,
-            color,
+            textColor,
             lineWidth,
             0,
             false

@@ -1,8 +1,11 @@
 import BaseAnnotationTool from '../base/BaseAnnotationTool.js';
+
 // State
+import textColors from './../../stateManagement/textColors.js';
 import { getToolState } from './../../stateManagement/toolState.js';
 import toolStyle from './../../stateManagement/toolStyle.js';
 import toolColors from './../../stateManagement/toolColors.js';
+
 // Drawing
 import {
   getNewContext,
@@ -14,10 +17,12 @@ import drawLinkedTextBox from './../../drawing/drawLinkedTextBox.js';
 import drawHandles from './../../drawing/drawHandles.js';
 import lineSegDistance from './../../util/lineSegDistance.js';
 import { lengthCursor } from '../cursors/index.js';
-import { getLogger } from '../../util/logger.js';
 import getPixelSpacing from '../../util/getPixelSpacing';
 import throttle from '../../util/throttle';
 import { getModule } from '../../store/index';
+
+// Logger
+import { getLogger } from '../../util/logger.js';
 
 const logger = getLogger('tools:annotation:LengthTool');
 
@@ -35,6 +40,8 @@ export default class LengthTool extends BaseAnnotationTool {
       supportedInteractionTypes: ['Mouse', 'Touch'],
       svgCursor: lengthCursor,
       configuration: {
+        // hideTextBox: false,
+        // textBoxOnHover: false,
         drawHandles: true,
         drawHandlesOnHover: false,
         hideHandlesIfMoving: false,
@@ -60,33 +67,38 @@ export default class LengthTool extends BaseAnnotationTool {
       return;
     }
 
-    const { x, y } = eventData.currentPoints.image;
+    const config = this.configuration || {};
 
     return {
       visible: true,
       active: true,
-      color: undefined,
+      color: config.color,
+      activeColor: config.activeColor,
       invalidated: true,
       handles: {
         start: {
-          x,
-          y,
+          x: eventData.currentPoints.image.x,
+          y: eventData.currentPoints.image.y,
           highlight: true,
           active: false,
         },
         end: {
-          x,
-          y,
+          x: eventData.currentPoints.image.x,
+          y: eventData.currentPoints.image.y,
           highlight: true,
           active: true,
         },
         textBox: {
           active: false,
+          color: undefined,
+          activeColor: undefined,
           hasMoved: false,
           movesIndependently: false,
           drawnIndependently: true,
           allowedOutsideImage: true,
           hasBoundingBox: true,
+          hide: false,
+          hover: false,
         },
       },
     };
@@ -171,10 +183,20 @@ export default class LengthTool extends BaseAnnotationTool {
       }
 
       draw(context, context => {
+        // Configure
+        const color = toolColors.getColorIfActive(data);
+
+        // Draw the handles
+        const handleOptions = {
+          color,
+          active: data.active,
+          handleRadius,
+          drawHandlesIfActive: drawHandlesOnHover,
+          hideHandlesIfMoving,
+        };
+
         // Configurable shadow
         setShadow(context, this.configuration);
-
-        const color = toolColors.getColorIfActive(data);
 
         const lineOptions = { color };
 
@@ -191,16 +213,22 @@ export default class LengthTool extends BaseAnnotationTool {
           lineOptions
         );
 
-        // Draw the handles
-        const handleOptions = {
-          color,
-          handleRadius,
-          drawHandlesIfActive: drawHandlesOnHover,
-          hideHandlesIfMoving,
-        };
-
         if (this.configuration.drawHandles) {
           drawHandles(context, eventData, data.handles, handleOptions);
+        }
+
+        // Hide TextBox
+        if (this.configuration.hideTextBox || data.handles.textBox.hide) {
+          return;
+        }
+        // TextBox OnHover
+        data.handles.textBox.hasBoundingBox =
+          !this.configuration.textBoxOnHover && !data.handles.textBox.hover;
+        if (
+          (this.configuration.textBoxOnHover || data.handles.textBox.hover) &&
+          !data.active
+        ) {
+          return;
         }
 
         if (!data.handles.textBox.hasMoved) {
@@ -235,6 +263,9 @@ export default class LengthTool extends BaseAnnotationTool {
 
         const text = textBoxText(data, rowPixelSpacing, colPixelSpacing);
 
+        // Text Colors
+        const textColor = textColors.getColorIfActive(data);
+
         drawLinkedTextBox(
           context,
           element,
@@ -242,7 +273,7 @@ export default class LengthTool extends BaseAnnotationTool {
           text,
           data.handles,
           textBoxAnchorPoints,
-          color,
+          textColor,
           lineWidth,
           xOffset,
           true

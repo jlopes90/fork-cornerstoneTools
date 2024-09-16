@@ -1,7 +1,9 @@
 import EVENTS from './../../events.js';
 import external from './../../externalModules.js';
 import BaseAnnotationTool from './../base/BaseAnnotationTool.js';
+
 // State
+import textColors from './../../stateManagement/textColors.js';
 import {
   addToolState,
   getToolState,
@@ -11,8 +13,10 @@ import toolStyle from './../../stateManagement/toolStyle.js';
 import toolColors from './../../stateManagement/toolColors.js';
 import { state } from '../../store/index.js';
 import triggerEvent from '../../util/triggerEvent.js';
+
 // Manipulators
 import { moveHandleNearImagePoint } from '../../util/findAndMoveHelpers.js';
+
 // Implementation Logic
 import pointInsideBoundingBox from '../../util/pointInsideBoundingBox.js';
 import calculateSUV from '../../util/calculateSUV.js';
@@ -27,9 +31,11 @@ import { clipToBox } from '../../util/clip.js';
 import { hideToolCursor, setToolCursor } from '../../store/setToolCursor.js';
 import { freehandRoiCursor } from '../cursors/index.js';
 import freehandUtils from '../../util/freehand/index.js';
-import { getLogger } from '../../util/logger.js';
 import throttle from '../../util/throttle';
 import { getModule } from '../../store/index';
+
+// Logger
+import { getLogger } from '../../util/logger.js';
 
 const logger = getLogger('tools:annotation:FreehandRoiTool');
 
@@ -54,9 +60,14 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
     const defaultProps = {
       name: 'FreehandRoi',
       supportedInteractionTypes: ['Mouse', 'Touch'],
-      configuration: defaultFreehandConfiguration(),
+      configuration: {
+        // hideTextBox: false,
+        // textBoxOnHover: false,
+      },
       svgCursor: freehandRoiCursor,
     };
+
+    Object.assign(defaultProps.configuration, defaultFreehandConfiguration());
 
     super(props, defaultProps);
 
@@ -101,26 +112,30 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
       return;
     }
 
-    const measurementData = {
+    const config = this.configuration || {};
+
+    return {
       visible: true,
       active: true,
+      color: config.color,
+      activeColor: config.activeColor,
       invalidated: true,
-      color: undefined,
       handles: {
         points: [],
+        textBox: {
+          active: false,
+          color: undefined,
+          activeColor: undefined,
+          hasMoved: false,
+          movesIndependently: false,
+          drawnIndependently: true,
+          allowedOutsideImage: true,
+          hasBoundingBox: true,
+          hide: false,
+          hover: false,
+        },
       },
     };
-
-    measurementData.handles.textBox = {
-      active: false,
-      hasMoved: false,
-      movesIndependently: false,
-      drawnIndependently: true,
-      allowedOutsideImage: true,
-      hasBoundingBox: true,
-    };
-
-    return measurementData;
   }
 
   /**
@@ -387,7 +402,7 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
           fillColor = toolColors.getToolColor();
         }
 
-        let options = { color };
+        const options = { color };
 
         if (renderDashed) {
           options.lineDash = lineDash;
@@ -418,48 +433,47 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
         }
 
         // Draw handles
-
-        options = {
+        const handleOptions = {
           color,
           fill: fillColor,
         };
 
         if (config.alwaysShowHandles || (data.active && data.polyBoundingBox)) {
           // Render all handles
-          options.handleRadius = config.activeHandleRadius;
+          handleOptions.handleRadius = config.activeHandleRadius;
 
           if (this.configuration.drawHandles) {
-            drawHandles(context, eventData, data.handles.points, options);
+            drawHandles(context, eventData, data.handles.points, handleOptions);
           }
         }
 
         if (data.canComplete) {
           // Draw large handle at the origin if can complete drawing
-          options.handleRadius = config.completeHandleRadius;
+          handleOptions.handleRadius = config.completeHandleRadius;
           const handle = data.handles.points[0];
 
           if (this.configuration.drawHandles) {
-            drawHandles(context, eventData, [handle], options);
+            drawHandles(context, eventData, [handle], handleOptions);
           }
         }
 
         if (data.active && !data.polyBoundingBox) {
           // Draw handle at origin and at mouse if actively drawing
-          options.handleRadius = config.activeHandleRadius;
+          handleOptions.handleRadius = config.activeHandleRadius;
 
           if (this.configuration.drawHandles) {
             drawHandles(
               context,
               eventData,
               config.mouseLocation.handles,
-              options
+              handleOptions
             );
           }
 
           const firstHandle = data.handles.points[0];
 
           if (this.configuration.drawHandles) {
-            drawHandles(context, eventData, [firstHandle], options);
+            drawHandles(context, eventData, [firstHandle], handleOptions);
           }
         }
 
@@ -470,6 +484,20 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
           } else {
             this.updateCachedStats(image, element, data);
           }
+        }
+
+        // Hide TextBox
+        if (this.configuration.hideTextBox || data.handles.textBox.hide) {
+          return;
+        }
+        // TextBox OnHover
+        data.handles.textBox.hasBoundingBox =
+          !this.configuration.textBoxOnHover && !data.handles.textBox.hover;
+        if (
+          (this.configuration.textBoxOnHover || data.handles.textBox.hover) &&
+          !data.active
+        ) {
+          return;
         }
 
         // Only render text if polygon ROI has been completed and freehand 'shiftKey' mode was not used:
@@ -487,6 +515,9 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
 
           const text = textBoxText.call(this, data);
 
+          // Text Colors
+          const textColor = textColors.getColorIfActive(data);
+
           drawLinkedTextBox(
             context,
             element,
@@ -494,7 +525,7 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
             text,
             data.handles.points,
             textBoxAnchorPoints,
-            color,
+            textColor,
             lineWidth,
             0,
             true

@@ -2,9 +2,11 @@ import external from './../../externalModules.js';
 import BaseAnnotationTool from '../base/BaseAnnotationTool.js';
 
 // State
+import textColors from './../../stateManagement/textColors.js';
 import { getToolState } from './../../stateManagement/toolState.js';
 import toolStyle from './../../stateManagement/toolStyle.js';
 import toolColors from './../../stateManagement/toolColors.js';
+import toolHandlesColors from '../../stateManagement/toolHandlesColors.js';
 import { getModule } from '../../store/index';
 
 // Drawing
@@ -45,6 +47,8 @@ export default class CircleRoiTool extends BaseAnnotationTool {
       supportedInteractionTypes: ['Mouse', 'Touch'],
       svgCursor: circleRoiCursor,
       configuration: {
+        // hideTextBox: false,
+        // textBoxOnHover: false,
         centerPointRadius: 0,
         renderDashed: false,
         hideHandlesIfMoving: false,
@@ -68,10 +72,13 @@ export default class CircleRoiTool extends BaseAnnotationTool {
       return;
     }
 
+    const config = this.configuration || {};
+
     return {
       visible: true,
       active: true,
-      color: undefined,
+      color: config.color,
+      activeColor: config.activeColor,
       invalidated: true,
       handles: {
         start: {
@@ -89,11 +96,15 @@ export default class CircleRoiTool extends BaseAnnotationTool {
         initialRotation: eventData.viewport.rotation,
         textBox: {
           active: false,
+          color: undefined,
+          activeColor: undefined,
           hasMoved: false,
           movesIndependently: false,
           drawnIndependently: true,
           allowedOutsideImage: true,
           hasBoundingBox: true,
+          hide: false,
+          hover: false,
         },
       },
     };
@@ -200,7 +211,9 @@ export default class CircleRoiTool extends BaseAnnotationTool {
         }
 
         // Configure
-        const color = toolColors.getColorIfActive(data);
+        let color = toolColors.getColorIfActive(data);
+
+        // Draw the handles
         const handleOptions = {
           color,
           handleRadius,
@@ -208,6 +221,22 @@ export default class CircleRoiTool extends BaseAnnotationTool {
           hideHandlesIfMoving,
         };
 
+        // Handles
+        const handleKeys = Object.keys(data.handles);
+
+        for (let i = 0; i < handleKeys.length; i++) {
+          const handleKey = handleKeys[i];
+          const handle = data.handles[handleKey];
+
+          if (typeof handle === 'object' && (data.active || handle.active)) {
+            color = toolColors.getActiveColor();
+
+            handleOptions.active = true;
+            handleOptions.color = toolHandlesColors.getColorIfActive(handle);
+          }
+        }
+
+        // Configurable shadow
         setShadow(context, this.configuration);
 
         const startCanvas = external.cornerstone.pixelToCanvas(
@@ -257,6 +286,20 @@ export default class CircleRoiTool extends BaseAnnotationTool {
 
         drawHandles(context, eventData, data.handles, handleOptions);
 
+        // Hide TextBox
+        if (this.configuration.hideTextBox || data.handles.textBox.hide) {
+          continue;
+        }
+        // TextBox OnHover
+        data.handles.textBox.hasBoundingBox =
+          !this.configuration.textBoxOnHover && !data.handles.textBox.hover;
+        if (
+          (this.configuration.textBoxOnHover || data.handles.textBox.hover) &&
+          !data.active
+        ) {
+          continue;
+        }
+
         // Update textbox stats
         if (data.invalidated === true) {
           if (data.cachedStats) {
@@ -288,6 +331,9 @@ export default class CircleRoiTool extends BaseAnnotationTool {
           this.configuration
         );
 
+        // Text Colors
+        const textColor = textColors.getColorIfActive(data);
+
         data.unit = _getUnit(modality, this.configuration.showHounsfieldUnits);
 
         drawLinkedTextBox(
@@ -297,7 +343,7 @@ export default class CircleRoiTool extends BaseAnnotationTool {
           textBoxContent,
           data.handles,
           textBoxAnchorPoints,
-          color,
+          textColor,
           lineWidth,
           10,
           true

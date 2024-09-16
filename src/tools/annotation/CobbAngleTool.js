@@ -2,6 +2,7 @@ import external from './../../externalModules.js';
 import BaseAnnotationTool from '../base/BaseAnnotationTool.js';
 // State
 import textStyle from './../../stateManagement/textStyle.js';
+import textColors from './../../stateManagement/textColors.js';
 import {
   addToolState,
   getToolState,
@@ -29,6 +30,11 @@ import throttle from '../../util/throttle';
 import getPixelSpacing from '../../util/getPixelSpacing';
 import { getModule } from '../../store/index';
 
+// Logger
+import { getLogger } from '../../util/logger.js';
+
+const logger = getLogger('tools:annotation:CobbAngleTool');
+
 /**
  * @public
  * @class CobbAngleTool
@@ -43,6 +49,8 @@ export default class CobbAngleTool extends BaseAnnotationTool {
       supportedInteractionTypes: ['Mouse', 'Touch'],
       svgCursor: cobbAngleCursor,
       configuration: {
+        // hideTextBox: false,
+        // textBoxOnHover: false,
         drawHandles: true,
         drawHandlesOnHover: false,
         hideHandlesIfMoving: false,
@@ -58,13 +66,26 @@ export default class CobbAngleTool extends BaseAnnotationTool {
   }
 
   createNewMeasurement(eventData) {
-    // Create the measurement data for this tool with the end handle activated
+    const goodEventData =
+      eventData && eventData.currentPoints && eventData.currentPoints.image;
+
+    if (!goodEventData) {
+      logger.error(
+        `required eventData not supplied to tool ${this.name}'s createNewMeasurement`
+      );
+
+      return;
+    }
+
+    const config = this.configuration || {};
+
     this.hasIncomplete = true;
 
     return {
       visible: true,
       active: true,
-      color: undefined,
+      color: config.color,
+      activeColor: config.activeColor,
       invalidated: true,
       complete: false,
       value: '',
@@ -97,11 +118,15 @@ export default class CobbAngleTool extends BaseAnnotationTool {
         },
         textBox: {
           active: false,
+          color: undefined,
+          activeColor: undefined,
           hasMoved: false,
           movesIndependently: false,
           drawnIndependently: true,
           allowedOutsideImage: true,
           hasBoundingBox: true,
+          hide: false,
+          hover: false,
         },
       },
     };
@@ -200,10 +225,20 @@ export default class CobbAngleTool extends BaseAnnotationTool {
       }
 
       draw(context, context => {
+        // Configurable shadow
         setShadow(context, this.configuration);
 
         // Differentiate the color of activation tool
         const color = toolColors.getColorIfActive(data);
+
+        // Draw the handles
+        const handleOptions = {
+          color,
+          active: data.active,
+          handleRadius,
+          drawHandlesIfActive: drawHandlesOnHover,
+          hideHandlesIfMoving,
+        };
 
         const lineOptions = { color };
 
@@ -229,20 +264,26 @@ export default class CobbAngleTool extends BaseAnnotationTool {
           );
         }
 
-        // Draw the handles
-        const handleOptions = {
-          color,
-          handleRadius,
-          drawHandlesIfActive: drawHandlesOnHover,
-          hideHandlesIfMoving,
-        };
-
         if (this.configuration.drawHandles) {
           drawHandles(context, eventData, data.handles, handleOptions);
         }
 
         // Draw the text
         context.fillStyle = color;
+
+        // Hide TextBox
+        if (this.configuration.hideTextBox || data.handles.textBox.hide) {
+          return;
+        }
+        // TextBox OnHover
+        data.handles.textBox.hasBoundingBox =
+          !this.configuration.textBoxOnHover && !data.handles.textBox.hover;
+        if (
+          (this.configuration.textBoxOnHover || data.handles.textBox.hover) &&
+          !data.active
+        ) {
+          return;
+        }
 
         const text = data.value;
 
@@ -257,6 +298,9 @@ export default class CobbAngleTool extends BaseAnnotationTool {
           data.handles.textBox.y = textCoords.y;
         }
 
+        // Text Colors
+        const textColor = textColors.getColorIfActive(data);
+
         drawLinkedTextBox(
           context,
           eventData.element,
@@ -264,7 +308,7 @@ export default class CobbAngleTool extends BaseAnnotationTool {
           text,
           data.handles,
           textBoxAnchorPoints,
-          color,
+          textColor,
           lineWidth,
           0,
           true
